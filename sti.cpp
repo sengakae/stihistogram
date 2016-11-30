@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
       resize(frame2, frame2, Size(128, 128));
       Mat chrom2 = chromConv(frame2);
       
-      for(int j = 0; j < frame2.cols; ++j) {
+      for(int j = 0; j < frame2.rows; ++j) {
         histImg.at<float>(i-1,j) = makeHist(chrom1.col(j), chrom2.col(j));
       }
       frame1 = frame2;
