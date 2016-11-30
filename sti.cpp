@@ -115,14 +115,15 @@ Mat chromConv(Mat img) {
 }
 
 int main(int argc, char** argv) {
+  string argv2(argv[2]);
   // reads video file as argument
-  if(argc < 2) {
-    cout << "Usage: ./program <video>" << endl;
+  if(argc < 3 || ((argv2 != "cols") && (argv2 != "rows"))) {
+    cout << "Usage: ./sti <video> <rows|cols>" << endl;
     return -1;
-  }
-  
+  }    
+
   cout << "Filename: " << argv[1] << endl;
-  
+   
   Mat frame1, frame2;
   VideoCapture capture;
   if(capture.open(argv[1])) {
@@ -132,11 +133,11 @@ int main(int argc, char** argv) {
     Mat histImg(size, CV_32F);
     cout << "fps: " << fps <<  endl;
     cout << "total frames: " << vidframes << endl;
-
+    
     // reads in first frame
     capture.set(CV_CAP_PROP_POS_FRAMES, 0);
     capture >> frame1;
-   
+    
     // for frames 2 and onwards
     for(int i = 1; i < vidframes - 1; ++i) {
       capture.set(CV_CAP_PROP_POS_FRAMES, i);
@@ -145,7 +146,7 @@ int main(int argc, char** argv) {
 	cout << "frame: " << i << endl;
 	return -1;
       }
-
+      
       // convert frames before histogram creation
       // frames are resized to 128 x 128
       resize(frame1, frame1, Size(128, 128));
@@ -154,15 +155,26 @@ int main(int argc, char** argv) {
       resize(frame2, frame2, Size(128, 128));
       Mat chrom2 = chromConv(frame2);
       
-      for(int j = 0; j < frame2.rows; ++j) {
-        histImg.at<float>(i-1,j) = makeHist(chrom1.col(j), chrom2.col(j));
+      if(argv2 == "cols") {
+	for(int j = 0; j < frame2.cols; ++j) {
+	  histImg.at<float>(i-1,j) = makeHist(chrom1.col(j), chrom2.col(j));
+	}
+      }
+      else if(argv2 == "rows") {
+	for(int j = 0; j < frame2.rows; ++j) {
+	  Mat row1, row2;
+	  transpose(chrom1.row(j), row1);
+	  transpose(chrom2.row(j), row2);
+	  histImg.at<float>(i-1,j) = makeHist(row1, row2);
+	}
       }
       frame1 = frame2;
     }    
     
+    // transpose result 90 degrees
     // output resulting sti - press any key to exit
+    transpose(histImg, histImg);
     imshow("STI", histImg);
     waitKey(0);
   }
-  else cout << "Video not found" << endl;
 }
