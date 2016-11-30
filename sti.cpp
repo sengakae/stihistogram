@@ -9,25 +9,32 @@
 using namespace cv;
 using namespace std;
 
+// reads 2 images, extracts the red and green channels, create and compares histograms
 float makeHist(Mat img1, Mat img2) {
+  // error if row count does not match
   if(img1.rows != img2.rows) {
     cout << "Error - Row count does not match" << endl;
     exit(1);
   }
     
+  // modified version of Sturges's Rule
   int bins = 1 + log(img2.rows)/log(2);
 
+  // histogram setup
   float range[] = {0, 256};
   const float* histRange = {range};
 
+  // split images into color channels
   vector<Mat> bgr_planes1;
   split(img1, bgr_planes1);
 
   vector<Mat> bgr_planes2;
   split(img2, bgr_planes2);
 
+  // initialize histogram variables
   Mat rgHist1, rgHist2;
 
+  // extract red and green channels from images
   vector<Mat> rg_temp1;
   rg_temp1.push_back(bgr_planes1[1]);
   rg_temp1.push_back(bgr_planes1[2]);
@@ -45,12 +52,15 @@ float makeHist(Mat img1, Mat img2) {
   int imgCount = 1;
   int dims = 1;
   const int channels[] = {0, 1};
+
+  // histogram calculation + normalization
   calcHist(&rg1, imgCount, channels, Mat(), rgHist1, dims, &bins, &histRange, true, false);
   normalize(rgHist1, rgHist1, 0, 1, NORM_MINMAX, -1, Mat());
 
   calcHist(&rg2, imgCount, channels, Mat(), rgHist2, dims, &bins, &histRange, true, false);
   normalize(rgHist2, rgHist2, 0, 1, NORM_MINMAX, -1, Mat());
  
+  // each histogram is divided by its sum
   float rg1_sum = 0;
   for(int i = 0; i < bins; ++i) {
     rg1_sum += rgHist1.at<float>(i);
@@ -65,10 +75,12 @@ float makeHist(Mat img1, Mat img2) {
     rgHist1.at<float>(k) = rgHist1.at<float>(k) / rg1_sum;
     rgHist2.at<float>(k) = rgHist2.at<float>(k) / rg2_sum;
   }
-
+  
+  // return the histogram intersection
   return compareHist(rgHist1, rgHist2, CV_COMP_INTERSECT);
 }
 
+// chromaticity conversion
 Mat chromConv(Mat img) {
   Mat res(img.size(), img.type());
   for (int i = 0; i < img.cols; ++i) {
@@ -93,19 +105,12 @@ Mat chromConv(Mat img) {
 	b = blue / sum;
       }
 
-      res.data[res.step[0]*i + res.step[1]*j + 0] = (b*255);
-      res.data[res.step[0]*i + res.step[1]*j + 1] = (g*255);
-      res.data[res.step[0]*i + res.step[1]*j + 2] = (r*255);
-      
-      //cout << res.at<Vec3f>(0,i) << endl;
+      // stores the pixel values into the new Mat output 
+      res.data[res.step[0]*j + res.step[1]*i + 0] = (b*255);
+      res.data[res.step[0]*j + res.step[1]*i + 1] = (g*255);
+      res.data[res.step[0]*j + res.step[1]*i + 2] = (r*255);
     }
-    //col = img.col(i);
-    //cout << col.size() << endl;
   }
-
-  imshow("test", res);
-  waitKey(1);
-
   return res;
 }
 
@@ -128,9 +133,11 @@ int main(int argc, char** argv) {
     cout << "fps: " << fps <<  endl;
     cout << "total frames: " << vidframes << endl;
 
+    // reads in first frame
     capture.set(CV_CAP_PROP_POS_FRAMES, 0);
     capture >> frame1;
    
+    // for frames 2 and onwards
     for(int i = 1; i < vidframes - 1; ++i) {
       capture.set(CV_CAP_PROP_POS_FRAMES, i);
       capture >> frame2;
@@ -140,6 +147,7 @@ int main(int argc, char** argv) {
       }
 
       // convert frames before histogram creation
+      // frames are resized to 128 x 128
       resize(frame1, frame1, Size(128, 128));
       Mat chrom1 = chromConv(frame1);
       
@@ -148,21 +156,12 @@ int main(int argc, char** argv) {
       
       for(int j = 0; j < frame2.cols; ++j) {
         histImg.at<float>(i-1,j) = makeHist(chrom1.col(j), chrom2.col(j));
-	//histImg.at<float>(i-1,j) = makeHist(frame1.col(j), frame2.col(j));
-	//cout << histImg.at<float>(i-1,j) << ", ";
       }
       frame1 = frame2;
-    }
-   
+    }    
     
-    for(int i = 0; i < histImg.rows; ++i) {
-      for(int j = 0; j < histImg.cols; ++j) {
-	cout << histImg.at<float>(i,j) << ", ";
-      }
-    }
-    
-    
-    imshow("test", histImg);
+    // output resulting sti - press any key to exit
+    imshow("STI", histImg);
     waitKey(0);
   }
   else cout << "Video not found" << endl;
