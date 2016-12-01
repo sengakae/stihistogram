@@ -129,6 +129,7 @@ int main(int argc, char** argv) {
   if(capture.open(argv[1])) {
     double fps = capture.get(CV_CAP_PROP_FPS);
     int vidframes = capture.get(CV_CAP_PROP_FRAME_COUNT);
+    // TODO - needless transposing - fix so that x-axis (vidframes) and y-axis (column or row)
     Size size(128, vidframes);
     Mat histImg(size, CV_32F);
     cout << "fps: " << fps <<  endl;
