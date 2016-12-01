@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
     
     // transpose result 90 degrees
     // output resulting sti - press any key to exit
-    transpose(histImg, histImg);
+    tranpose(histImg, histImg);
     imshow("STI", histImg);
     waitKey(0);
   }
